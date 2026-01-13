@@ -193,7 +193,6 @@ function LoginContent() {
                     </form>
                 </Form>
             </CardContent>
-            </CardContent>
             <CardFooter className="flex justify-center">
                 <p className="text-sm text-muted-foreground">
                     Belum punya akun?{' '}
@@ -202,7 +201,7 @@ function LoginContent() {
                     </Link>
                 </p>
             </CardFooter>
-        </Card >
+        </Card>
     );
 }
 
