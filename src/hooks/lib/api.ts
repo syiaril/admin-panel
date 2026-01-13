@@ -3,7 +3,15 @@ import { createBrowserClient } from '@supabase/ssr';
 
 // Helper to get the API URL
 export const getApiUrl = () => {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+        return 'https://express-supabase-api-six.vercel.app/api';
+    }
+
+    return 'http://localhost:4000/api';
 };
 
 // Helper to fetch from API with Supabase Auth
