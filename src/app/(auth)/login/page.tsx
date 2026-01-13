@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,6 +16,7 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
+    CardFooter,
 } from '@/components/ui/card';
 import {
     Form,
@@ -191,7 +193,16 @@ function LoginContent() {
                     </form>
                 </Form>
             </CardContent>
-        </Card>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+                <p className="text-sm text-muted-foreground">
+                    Belum punya akun?{' '}
+                    <Link href="/register" className="text-orange-600 hover:text-orange-500 font-medium">
+                        Daftar
+                    </Link>
+                </p>
+            </CardFooter>
+        </Card >
     );
 }
 
