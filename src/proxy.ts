@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     // Public routes that don't require authentication
-    const publicRoutes = ['/login', '/setup-admin'];
+    const publicRoutes = ['/login', '/setup-admin', '/register'];
     const isPublicRoute = publicRoutes.some((route) =>
         request.nextUrl.pathname.startsWith(route)
     );
