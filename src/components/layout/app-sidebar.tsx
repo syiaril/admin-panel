@@ -35,7 +35,17 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 
-const menuItems = [
+interface MenuItem {
+    title: string;
+    url: string;
+    icon?: React.ElementType;
+    items?: {
+        title: string;
+        url: string;
+    }[];
+}
+
+const menuItems: MenuItem[] = [
     {
         title: 'Dashboard',
         url: '/dashboard',
@@ -48,11 +58,8 @@ const menuItems = [
     },
     {
         title: 'Produk',
+        url: '/products',
         icon: Package,
-        items: [
-            { title: 'Semua Produk', url: '/products' },
-            { title: 'Tambah Produk', url: '/products/new' },
-        ],
     },
     {
         title: 'Kategori',

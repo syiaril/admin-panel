@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -10,13 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,9 +20,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { createClient } from '@/lib/supabase/client';
 import { Order, OrderStatus } from '@/types/database';
 import { getOrderStatusInfo } from '@/lib/formatters';
+import { fetchWithAuth } from '@/hooks/lib/api';
 
 const statusTransitions: Record<OrderStatus, { next: OrderStatus[]; cancel?: boolean }> = {
     pending: { next: ['confirmed'], cancel: true },
@@ -56,15 +48,14 @@ const statusActions: Record<OrderStatus, string> = {
 
 interface OrderStatusUpdaterProps {
     order: Order;
+    onUpdate?: () => void;
 }
 
-export function OrderStatusUpdater({ order }: OrderStatusUpdaterProps) {
-    const router = useRouter();
+export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
     const [adminNotes, setAdminNotes] = useState(order.admin_notes || '');
     const [cancelReason, setCancelReason] = useState('');
-    const supabase = createClient();
 
     const transitions = statusTransitions[order.status];
     const nextStatuses = transitions.next;
@@ -75,55 +66,44 @@ export function OrderStatusUpdater({ order }: OrderStatusUpdaterProps) {
 
         const updateData: Record<string, unknown> = {
             status: newStatus,
-            updated_at: new Date().toISOString(),
         };
 
-        // Set timestamp based on new status
-        switch (newStatus) {
-            case 'confirmed':
-                updateData.confirmed_at = new Date().toISOString();
-                break;
-            case 'shipped':
-                updateData.shipped_at = new Date().toISOString();
-                if (trackingNumber) {
-                    updateData.tracking_number = trackingNumber;
-                }
-                break;
-            case 'delivered':
-                updateData.delivered_at = new Date().toISOString();
-                break;
-            case 'completed':
-                updateData.completed_at = new Date().toISOString();
-                break;
-            case 'cancelled':
-                updateData.cancelled_at = new Date().toISOString();
-                updateData.cancel_reason = cancelReason;
-                break;
+        // Add tracking number if shipping
+        if (newStatus === 'shipped' && trackingNumber) {
+            updateData.tracking_number = trackingNumber;
         }
 
+        // Add cancel reason if cancelling
+        if (newStatus === 'cancelled' && cancelReason) {
+            updateData.cancel_reason = cancelReason;
+        }
+
+        // Add admin notes if changed
         if (adminNotes && adminNotes !== order.admin_notes) {
             updateData.admin_notes = adminNotes;
         }
 
-        const { error } = await supabase
-            .from('orders')
-            .update(updateData)
-            .eq('id', order.id);
-
-        if (error) {
-            toast.error('Gagal update status', {
-                description: error.message,
+        try {
+            const response = await fetchWithAuth(`/admin/orders/${order.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(updateData),
             });
+
+            if (response.success) {
+                toast.success('Status berhasil diupdate', {
+                    description: `Pesanan ${order.order_number} sekarang ${getOrderStatusInfo(newStatus).label}`,
+                });
+                onUpdate?.();
+            } else {
+                throw new Error(response.error || 'Failed to update status');
+            }
+        } catch (err) {
+            toast.error('Gagal update status', {
+                description: err instanceof Error ? err.message : 'Terjadi kesalahan',
+            });
+        } finally {
             setIsLoading(false);
-            return;
         }
-
-        toast.success('Status berhasil diupdate', {
-            description: `Pesanan ${order.order_number} sekarang ${getOrderStatusInfo(newStatus).label}`,
-        });
-
-        router.refresh();
-        setIsLoading(false);
     };
 
     const saveTrackingNumber = async () => {
@@ -134,47 +114,53 @@ export function OrderStatusUpdater({ order }: OrderStatusUpdaterProps) {
 
         setIsLoading(true);
 
-        const { error } = await supabase
-            .from('orders')
-            .update({
-                tracking_number: trackingNumber,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', order.id);
-
-        if (error) {
-            toast.error('Gagal menyimpan nomor resi', {
-                description: error.message,
+        try {
+            const response = await fetchWithAuth(`/admin/orders/${order.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    tracking_number: trackingNumber,
+                }),
             });
-        } else {
-            toast.success('Nomor resi berhasil disimpan');
-            router.refresh();
-        }
 
-        setIsLoading(false);
+            if (response.success) {
+                toast.success('Nomor resi berhasil disimpan');
+                onUpdate?.();
+            } else {
+                throw new Error(response.error || 'Failed to save tracking number');
+            }
+        } catch (err) {
+            toast.error('Gagal menyimpan nomor resi', {
+                description: err instanceof Error ? err.message : 'Terjadi kesalahan',
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const saveAdminNotes = async () => {
         setIsLoading(true);
 
-        const { error } = await supabase
-            .from('orders')
-            .update({
-                admin_notes: adminNotes,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', order.id);
-
-        if (error) {
-            toast.error('Gagal menyimpan catatan', {
-                description: error.message,
+        try {
+            const response = await fetchWithAuth(`/admin/orders/${order.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    admin_notes: adminNotes,
+                }),
             });
-        } else {
-            toast.success('Catatan berhasil disimpan');
-            router.refresh();
-        }
 
-        setIsLoading(false);
+            if (response.success) {
+                toast.success('Catatan berhasil disimpan');
+                onUpdate?.();
+            } else {
+                throw new Error(response.error || 'Failed to save notes');
+            }
+        } catch (err) {
+            toast.error('Gagal menyimpan catatan', {
+                description: err instanceof Error ? err.message : 'Terjadi kesalahan',
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     if (nextStatuses.length === 0 && !canCancel) {

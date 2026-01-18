@@ -27,7 +27,7 @@ export function OrderStatusChart({ data }: OrderStatusChartProps) {
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <PieChart>
                             <Pie
                                 data={data}

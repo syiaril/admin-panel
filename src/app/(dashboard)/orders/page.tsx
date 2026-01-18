@@ -1,9 +1,10 @@
-import { Suspense } from 'react';
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
@@ -19,9 +20,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Eye, MoreHorizontal, Package } from 'lucide-react';
+import { Eye, MoreHorizontal, Package, RefreshCw, AlertCircle } from 'lucide-react';
 import { formatPrice, formatDate, getOrderStatusInfo, getPaymentStatusInfo } from '@/lib/formatters';
 import { Order, OrderStatus, PaymentStatus } from '@/types/database';
+import { fetchWithAuth } from '@/hooks/lib/api';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface OrderWithProfile extends Order {
     profiles: {
@@ -34,61 +37,14 @@ interface OrderWithProfile extends Order {
     }[];
 }
 
-async function getOrders(status?: OrderStatus, paymentStatus?: PaymentStatus) {
-    const supabase = await createClient();
-
-    let query = supabase
-        .from('orders')
-        .select(`
-      *,
-      profiles:user_id (
-        full_name,
-        email
-      ),
-      order_items (
-        id,
-        quantity
-      )
-    `)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-    if (status) {
-        query = query.eq('status', status);
-    }
-
-    if (paymentStatus) {
-        query = query.eq('payment_status', paymentStatus);
-    }
-
-    const { data: orders, error } = await query;
-
-    if (error) {
-        console.error('Error fetching orders:', error);
-        return [];
-    }
-
-    return orders as OrderWithProfile[];
-}
-
-async function getOrderStats() {
-    const supabase = await createClient();
-
-    const { data: orders } = await supabase
-        .from('orders')
-        .select('status, payment_status');
-
-    const stats = {
-        total: orders?.length || 0,
-        pending: orders?.filter(o => o.status === 'pending').length || 0,
-        confirmed: orders?.filter(o => o.status === 'confirmed').length || 0,
-        processing: orders?.filter(o => o.status === 'processing').length || 0,
-        shipped: orders?.filter(o => o.status === 'shipped').length || 0,
-        delivered: orders?.filter(o => o.status === 'delivered').length || 0,
-        unpaid: orders?.filter(o => o.payment_status === 'pending').length || 0,
-    };
-
-    return stats;
+interface OrderStats {
+    total: number;
+    pending: number;
+    confirmed: number;
+    processing: number;
+    shipped: number;
+    delivered: number;
+    unpaid: number;
 }
 
 function OrdersTableSkeleton() {
@@ -128,98 +84,22 @@ function OrdersTableSkeleton() {
     );
 }
 
-async function OrdersTable({ status, paymentStatus }: { status?: OrderStatus; paymentStatus?: PaymentStatus }) {
-    const orders = await getOrders(status, paymentStatus);
-
+function StatsCardsSkeleton() {
     return (
-        <div className="rounded-md border bg-card">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>No. Order</TableHead>
-                        <TableHead>Pelanggan</TableHead>
-                        <TableHead className="text-center">Items</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Pembayaran</TableHead>
-                        <TableHead>Tanggal</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {orders.length > 0 ? (
-                        orders.map((order) => {
-                            const statusInfo = getOrderStatusInfo(order.status);
-                            const paymentInfo = getPaymentStatusInfo(order.payment_status);
-                            const totalItems = order.order_items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-
-                            return (
-                                <TableRow key={order.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={`/orders/${order.id}`} className="hover:underline text-orange-600">
-                                            {order.order_number}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{order.profiles?.full_name || 'Guest'}</p>
-                                            <p className="text-xs text-muted-foreground">{order.profiles?.email}</p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="outline">{totalItems} item</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                        {formatPrice(order.total_amount)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className={statusInfo.bgColor}>{statusInfo.label}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className={paymentInfo.bgColor}>{paymentInfo.label}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {formatDate(order.created_at)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/orders/${order.id}`}>
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        Lihat Detail
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center">
-                                <div className="flex flex-col items-center gap-2">
-                                    <Package className="h-8 w-8 text-muted-foreground" />
-                                    <p className="text-muted-foreground">Belum ada pesanan</p>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6">
+            {[...Array(6)].map((_, i) => (
+                <Card key={i}>
+                    <CardContent className="pt-4">
+                        <Skeleton className="h-8 w-12 mb-1" />
+                        <Skeleton className="h-3 w-20" />
+                    </CardContent>
+                </Card>
+            ))}
         </div>
     );
 }
 
-async function StatsCards() {
-    const stats = await getOrderStats();
-
+function StatsCards({ stats }: { stats: OrderStats }) {
     return (
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6">
             <Card>
@@ -262,7 +142,142 @@ async function StatsCards() {
     );
 }
 
+function OrdersTable({ orders }: { orders: OrderWithProfile[] }) {
+    if (orders.length === 0) {
+        return (
+            <div className="rounded-md border bg-card">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>No. Order</TableHead>
+                            <TableHead>Pelanggan</TableHead>
+                            <TableHead className="text-center">Items</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Pembayaran</TableHead>
+                            <TableHead>Tanggal</TableHead>
+                            <TableHead className="w-10"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell colSpan={8} className="h-24 text-center">
+                                <div className="flex flex-col items-center gap-2">
+                                    <Package className="h-8 w-8 text-muted-foreground" />
+                                    <p className="text-muted-foreground">Belum ada pesanan</p>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-md border bg-card">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>No. Order</TableHead>
+                        <TableHead>Pelanggan</TableHead>
+                        <TableHead className="text-center">Items</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Pembayaran</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {orders.map((order) => {
+                        const statusInfo = getOrderStatusInfo(order.status);
+                        const paymentInfo = getPaymentStatusInfo(order.payment_status);
+                        const totalItems = order.order_items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+                        return (
+                            <TableRow key={order.id}>
+                                <TableCell className="font-medium">
+                                    <Link href={`/orders/${order.id}`} className="hover:underline text-orange-600">
+                                        {order.order_number}
+                                    </Link>
+                                </TableCell>
+                                <TableCell>
+                                    <div>
+                                        <p className="font-medium">{order.profiles?.full_name || 'Guest'}</p>
+                                        <p className="text-xs text-muted-foreground">{order.profiles?.email}</p>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant="outline">{totalItems} item</Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-medium">
+                                    {formatPrice(order.total_amount)}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge className={statusInfo.bgColor}>{statusInfo.label}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge className={paymentInfo.bgColor}>{paymentInfo.label}</Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                    {formatDate(order.created_at)}
+                                </TableCell>
+                                <TableCell>
+                                    <Button variant="ghost" size="icon" asChild>
+                                        <Link href={`/orders/${order.id}`}>
+                                            <Eye className="h-4 w-4" />
+                                            <span className="sr-only">Lihat Detail</span>
+                                        </Link>
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}
+
 export default function OrdersPage() {
+    const [orders, setOrders] = useState<OrderWithProfile[]>([]);
+    const [stats, setStats] = useState<OrderStats | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchData = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Fetch orders and stats in parallel
+            const [ordersResponse, statsResponse] = await Promise.all([
+                fetchWithAuth('/admin/orders?limit=50'),
+                fetchWithAuth('/admin/orders/stats'),
+            ]);
+
+            if (ordersResponse.success) {
+                setOrders(ordersResponse.data || []);
+            } else {
+                throw new Error(ordersResponse.error || 'Failed to fetch orders');
+            }
+
+            if (statsResponse.success) {
+                setStats(statsResponse.data);
+            }
+        } catch (err) {
+            console.error('Error fetching orders:', err);
+            setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -272,26 +287,31 @@ export default function OrdersPage() {
                         Kelola semua pesanan pelanggan
                     </p>
                 </div>
+                <Button variant="outline" onClick={fetchData} disabled={isLoading}>
+                    <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                </Button>
             </div>
 
-            <Suspense fallback={
-                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6">
-                    {[...Array(6)].map((_, i) => (
-                        <Card key={i}>
-                            <CardContent className="pt-4">
-                                <Skeleton className="h-8 w-12 mb-1" />
-                                <Skeleton className="h-3 w-20" />
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            }>
-                <StatsCards />
-            </Suspense>
+            {error && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
 
-            <Suspense fallback={<OrdersTableSkeleton />}>
-                <OrdersTable />
-            </Suspense>
+            {isLoading ? (
+                <>
+                    <StatsCardsSkeleton />
+                    <OrdersTableSkeleton />
+                </>
+            ) : (
+                <>
+                    {stats && <StatsCards stats={stats} />}
+                    <OrdersTable orders={orders} />
+                </>
+            )}
         </div>
     );
 }

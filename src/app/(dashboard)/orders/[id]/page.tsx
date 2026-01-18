@@ -1,10 +1,14 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
     ArrowLeft,
     MapPin,
@@ -15,6 +19,8 @@ import {
     CreditCard,
     FileText,
     Calendar,
+    AlertCircle,
+    RefreshCw,
 } from 'lucide-react';
 import {
     formatPrice,
@@ -26,6 +32,7 @@ import {
 } from '@/lib/formatters';
 import { Order, OrderItem } from '@/types/database';
 import { OrderStatusUpdater } from './order-status-updater';
+import { fetchWithAuth } from '@/hooks/lib/api';
 
 interface OrderWithDetails extends Order {
     profiles: {
@@ -43,48 +50,129 @@ interface OrderWithDetails extends Order {
     })[];
 }
 
-async function getOrder(id: string): Promise<OrderWithDetails | null> {
-    const supabase = await createClient();
-
-    const { data: order, error } = await supabase
-        .from('orders')
-        .select(`
-      *,
-      profiles:user_id (
-        id,
-        full_name,
-        email,
-        phone
-      ),
-      order_items (
-        *,
-        product:product_id (
-          id,
-          name,
-          slug
-        )
-      )
-    `)
-        .eq('id', id)
-        .single();
-
-    if (error || !order) {
-        return null;
-    }
-
-    return order as OrderWithDetails;
+function OrderDetailSkeleton() {
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <Skeleton className="h-10 w-10" />
+                <div className="flex-1">
+                    <Skeleton className="h-8 w-48 mb-2" />
+                    <Skeleton className="h-4 w-64" />
+                </div>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2 space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-32" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex gap-4">
+                                    <Skeleton className="h-16 w-16 rounded-lg" />
+                                    <div className="flex-1">
+                                        <Skeleton className="h-5 w-48 mb-2" />
+                                        <Skeleton className="h-4 w-24" />
+                                    </div>
+                                    <Skeleton className="h-5 w-20" />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="space-y-6">
+                    {[1, 2, 3, 4].map((i) => (
+                        <Card key={i}>
+                            <CardHeader>
+                                <Skeleton className="h-6 w-32" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-20 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 }
 
-export default async function OrderDetailPage({
-    params,
-}: {
-    params: Promise<{ id: string }>;
-}) {
-    const { id } = await params;
-    const order = await getOrder(id);
+export default function OrderDetailPage() {
+    const params = useParams();
+    const orderId = params.id as string;
+
+    const [order, setOrder] = useState<OrderWithDetails | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchOrder = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await fetchWithAuth(`/admin/orders/${orderId}`);
+
+            if (response.success) {
+                setOrder(response.data);
+            } else {
+                throw new Error(response.error || 'Failed to fetch order');
+            }
+        } catch (err) {
+            console.error('Error fetching order:', err);
+            setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (orderId) {
+            fetchOrder();
+        }
+    }, [orderId]);
+
+    if (isLoading) {
+        return <OrderDetailSkeleton />;
+    }
+
+    if (error) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" asChild>
+                        <Link href="/orders">
+                            <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                    <h1 className="text-2xl font-bold">Detail Pesanan</h1>
+                </div>
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+                <Button onClick={fetchOrder}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Coba Lagi
+                </Button>
+            </div>
+        );
+    }
 
     if (!order) {
-        notFound();
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" asChild>
+                        <Link href="/orders">
+                            <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                    <h1 className="text-2xl font-bold">Pesanan Tidak Ditemukan</h1>
+                </div>
+                <p className="text-muted-foreground">Pesanan dengan ID tersebut tidak ditemukan.</p>
+            </div>
+        );
     }
 
     const statusInfo = getOrderStatusInfo(order.status);
@@ -109,6 +197,10 @@ export default async function OrderDetailPage({
                         Dibuat pada {formatDateTime(order.created_at)}
                     </p>
                 </div>
+                <Button variant="outline" onClick={fetchOrder}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refresh
+                </Button>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
@@ -214,7 +306,7 @@ export default async function OrderDetailPage({
                 {/* Right Column - Customer & Shipping Info */}
                 <div className="space-y-6">
                     {/* Update Status */}
-                    <OrderStatusUpdater order={order} />
+                    <OrderStatusUpdater order={order} onUpdate={fetchOrder} />
 
                     {/* Customer Info */}
                     <Card>

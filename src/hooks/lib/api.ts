@@ -42,8 +42,16 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(error.error || `Request failed with status ${response.status}`);
+        let errorBody;
+        try {
+            errorBody = await response.json();
+            console.error('API Error JSON:', { url, status: response.status, body: errorBody });
+        } catch (e) {
+            const textHTML = await response.text();
+            console.error('API Error Text:', { url, status: response.status, body: textHTML });
+            throw new Error(`Request failed with status ${response.status}: ${textHTML.substring(0, 100)}`);
+        }
+        throw new Error(errorBody.error || `Request failed with status ${response.status}`);
     }
 
     return response.json();

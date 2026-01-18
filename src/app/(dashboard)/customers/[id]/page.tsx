@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ interface CustomerDetails extends Profile {
 }
 
 async function getCustomer(id: string): Promise<CustomerDetails | null> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: customer, error } = await supabase
         .from('profiles')

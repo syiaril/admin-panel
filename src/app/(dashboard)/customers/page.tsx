@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +23,7 @@ interface ProfileWithOrderCount extends Profile {
 }
 
 async function getCustomers() {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: customers, error } = await supabase
         .from('profiles')
@@ -44,7 +44,7 @@ async function getCustomers() {
 }
 
 async function getCustomerStats() {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { count: total } = await supabase
         .from('profiles')

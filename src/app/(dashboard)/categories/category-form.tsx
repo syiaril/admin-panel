@@ -150,14 +150,14 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Parent Kategori</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={(value) => field.onChange(value === "none" ? "" : value)} defaultValue={field.value || "none"}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Pilih parent (opsional)" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">Tidak ada</SelectItem>
+                                    <SelectItem value="none">Tidak ada</SelectItem>
                                     {categories
                                         .filter(c => !c.parent_id)
                                         .map((cat) => (
