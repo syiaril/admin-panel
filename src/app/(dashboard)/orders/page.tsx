@@ -89,7 +89,7 @@ function StatsCardsSkeleton() {
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6">
             {[...Array(6)].map((_, i) => (
                 <Card key={i}>
-                    <CardContent className="pt-4">
+                    <CardContent className="p-4 text-center">
                         <Skeleton className="h-8 w-12 mb-1" />
                         <Skeleton className="h-3 w-20" />
                     </CardContent>
@@ -103,37 +103,37 @@ function StatsCards({ stats }: { stats: OrderStats }) {
     return (
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6">
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold">{stats.total}</div>
                     <p className="text-xs text-muted-foreground">Total</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
                     <p className="text-xs text-muted-foreground">Menunggu</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-blue-600">{stats.confirmed}</div>
                     <p className="text-xs text-muted-foreground">Dikonfirmasi</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-indigo-600">{stats.processing}</div>
                     <p className="text-xs text-muted-foreground">Diproses</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-purple-600">{stats.shipped}</div>
                     <p className="text-xs text-muted-foreground">Dikirim</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-red-600">{stats.unpaid}</div>
                     <p className="text-xs text-muted-foreground">Belum Bayar</p>
                 </CardContent>

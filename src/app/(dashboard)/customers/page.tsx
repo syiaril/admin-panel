@@ -196,19 +196,19 @@ async function StatsCards() {
     return (
         <div className="grid gap-4 md:grid-cols-3 mb-6">
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold">{stats.total}</div>
                     <p className="text-xs text-muted-foreground">Total Pelanggan</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-green-600">{stats.newThisMonth}</div>
                     <p className="text-xs text-muted-foreground">Baru Bulan Ini</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-blue-600">{stats.verified}</div>
                     <p className="text-xs text-muted-foreground">Terverifikasi</p>
                 </CardContent>

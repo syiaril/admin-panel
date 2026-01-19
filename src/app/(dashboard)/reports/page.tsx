@@ -123,7 +123,7 @@ async function SalesReport() {
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
-                    <CardContent className="pt-4">
+                    <CardContent className="p-4">
                         <div className="flex items-center gap-2">
                             <DollarSign className="h-5 w-5 text-green-600" />
                             <span className="text-2xl font-bold">{formatPrice(report.totalRevenue)}</span>
@@ -132,13 +132,13 @@ async function SalesReport() {
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardContent className="pt-4">
+                    <CardContent className="p-4">
                         <div className="text-2xl font-bold">{report.totalOrders}</div>
                         <p className="text-sm text-muted-foreground">Total Pesanan (30 hari)</p>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardContent className="pt-4">
+                    <CardContent className="p-4">
                         <div className="text-2xl font-bold">{formatPrice(report.avgOrderValue)}</div>
                         <p className="text-sm text-muted-foreground">Rata-rata Nilai Pesanan</p>
                     </CardContent>

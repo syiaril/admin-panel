@@ -189,13 +189,13 @@ async function StatsCards() {
     return (
         <div className="grid gap-4 md:grid-cols-4 mb-6">
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold">{stats.total}</div>
                     <p className="text-xs text-muted-foreground">Total Review</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold flex items-center gap-1">
                         <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                         {stats.avgRating}
@@ -204,13 +204,13 @@ async function StatsCards() {
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
                     <p className="text-xs text-muted-foreground">Approved</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
                     <p className="text-xs text-muted-foreground">Pending</p>
                 </CardContent>

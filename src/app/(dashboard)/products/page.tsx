@@ -243,31 +243,31 @@ async function StatsCards() {
     return (
         <div className="grid gap-4 md:grid-cols-5 mb-6">
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold">{stats.total}</div>
                     <p className="text-xs text-muted-foreground">Total Produk</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-green-600">{stats.active}</div>
                     <p className="text-xs text-muted-foreground">Aktif</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-yellow-600">{stats.featured}</div>
                     <p className="text-xs text-muted-foreground">Featured</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-orange-600">{stats.lowStock}</div>
                     <p className="text-xs text-muted-foreground">Stok Rendah</p>
                 </CardContent>
             </Card>
             <Card>
-                <CardContent className="pt-4">
+                <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-red-600">{stats.outOfStock}</div>
                     <p className="text-xs text-muted-foreground">Habis</p>
                 </CardContent>
