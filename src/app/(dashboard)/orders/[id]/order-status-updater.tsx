@@ -23,6 +23,7 @@ import {
 import { Order, OrderStatus } from '@/types/database';
 import { getOrderStatusInfo } from '@/lib/formatters';
 import { fetchWithAuth } from '@/hooks/lib/api';
+import { useLanguage } from '@/components/layout/language-provider';
 
 const statusTransitions: Record<OrderStatus, { next: OrderStatus[]; cancel?: boolean }> = {
     pending: { next: ['confirmed'], cancel: true },
@@ -35,27 +36,28 @@ const statusTransitions: Record<OrderStatus, { next: OrderStatus[]; cancel?: boo
     refunded: { next: [], cancel: false },
 };
 
-const statusActions: Record<OrderStatus, string> = {
-    confirmed: 'Konfirmasi Pesanan',
-    processing: 'Proses Pesanan',
-    shipped: 'Kirim Pesanan',
-    delivered: 'Tandai Terkirim',
-    completed: 'Selesaikan Pesanan',
-    cancelled: 'Batalkan Pesanan',
-    refunded: 'Refund Pesanan',
-    pending: 'Menunggu',
-};
-
 interface OrderStatusUpdaterProps {
     order: Order;
     onUpdate?: () => void;
 }
 
 export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps) {
+    const { t } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
     const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
     const [adminNotes, setAdminNotes] = useState(order.admin_notes || '');
     const [cancelReason, setCancelReason] = useState('');
+
+    const statusActions: Record<OrderStatus, string> = {
+        confirmed: t('action_confirm'),
+        processing: t('action_process'),
+        shipped: t('action_ship'),
+        delivered: t('action_mark_delivered'),
+        completed: t('action_complete'),
+        cancelled: t('action_cancel'),
+        refunded: t('action_refund'),
+        pending: t('status_pending'),
+    };
 
     const transitions = statusTransitions[order.status];
     const nextStatuses = transitions.next;
@@ -90,16 +92,16 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
             });
 
             if (response.success) {
-                toast.success('Status berhasil diupdate', {
-                    description: `Pesanan ${order.order_number} sekarang ${getOrderStatusInfo(newStatus).label}`,
+                toast.success(t('statusUpdateSuccess'), {
+                    description: `${t('orders')} ${order.order_number} ${t('status')} ${getOrderStatusInfo(newStatus, t).label}`,
                 });
                 onUpdate?.();
             } else {
-                throw new Error(response.error || 'Failed to update status');
+                throw new Error(response.error || t('statusUpdateError'));
             }
         } catch (err) {
-            toast.error('Gagal update status', {
-                description: err instanceof Error ? err.message : 'Terjadi kesalahan',
+            toast.error(t('statusUpdateError'), {
+                description: err instanceof Error ? err.message : t('loading'),
             });
         } finally {
             setIsLoading(false);
@@ -108,7 +110,7 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
 
     const saveTrackingNumber = async () => {
         if (!trackingNumber.trim()) {
-            toast.error('Nomor resi tidak boleh kosong');
+            toast.error(t('trackingEmptyError'));
             return;
         }
 
@@ -123,14 +125,14 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
             });
 
             if (response.success) {
-                toast.success('Nomor resi berhasil disimpan');
+                toast.success(t('trackingSaveSuccess'));
                 onUpdate?.();
             } else {
-                throw new Error(response.error || 'Failed to save tracking number');
+                throw new Error(response.error || t('trackingSaveError'));
             }
         } catch (err) {
-            toast.error('Gagal menyimpan nomor resi', {
-                description: err instanceof Error ? err.message : 'Terjadi kesalahan',
+            toast.error(t('trackingSaveError'), {
+                description: err instanceof Error ? err.message : t('loading'),
             });
         } finally {
             setIsLoading(false);
@@ -149,14 +151,14 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
             });
 
             if (response.success) {
-                toast.success('Catatan berhasil disimpan');
+                toast.success(t('notesSaveSuccess'));
                 onUpdate?.();
             } else {
-                throw new Error(response.error || 'Failed to save notes');
+                throw new Error(response.error || t('notesSaveError'));
             }
         } catch (err) {
-            toast.error('Gagal menyimpan catatan', {
-                description: err instanceof Error ? err.message : 'Terjadi kesalahan',
+            toast.error(t('notesSaveError'), {
+                description: err instanceof Error ? err.message : t('loading'),
             });
         } finally {
             setIsLoading(false);
@@ -167,11 +169,11 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Update Status</CardTitle>
+                    <CardTitle>{t('updateStatus')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <p className="text-sm text-muted-foreground">
-                        Pesanan ini sudah {getOrderStatusInfo(order.status).label.toLowerCase()} dan tidak dapat diubah.
+                        {t('orderFixedStatus').replace('{0}', getOrderStatusInfo(order.status, t).label.toLowerCase())}
                     </p>
                 </CardContent>
             </Card>
@@ -181,19 +183,19 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Update Status</CardTitle>
+                <CardTitle>{t('updateStatus')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                 {/* Tracking Number for shipped status */}
                 {order.status === 'processing' && (
                     <div className="space-y-2">
-                        <Label htmlFor="tracking">Nomor Resi</Label>
+                        <Label htmlFor="tracking">{t('trackingNumber')}</Label>
                         <div className="flex gap-2">
                             <Input
                                 id="tracking"
                                 value={trackingNumber}
                                 onChange={(e) => setTrackingNumber(e.target.value)}
-                                placeholder="Masukkan nomor resi"
+                                placeholder={t('enterTrackingNumber')}
                             />
                         </div>
                     </div>
@@ -201,12 +203,12 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
 
                 {/* Admin Notes */}
                 <div className="space-y-2">
-                    <Label htmlFor="notes">Catatan Admin</Label>
+                    <Label htmlFor="notes">{t('adminNotes')}</Label>
                     <Textarea
                         id="notes"
                         value={adminNotes}
                         onChange={(e) => setAdminNotes(e.target.value)}
-                        placeholder="Tambahkan catatan..."
+                        placeholder={t('adminNotesPlaceholder')}
                         rows={2}
                     />
                     {adminNotes !== (order.admin_notes || '') && (
@@ -216,7 +218,7 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
                             onClick={saveAdminNotes}
                             disabled={isLoading}
                         >
-                            Simpan Catatan
+                            {t('saveNotes')}
                         </Button>
                     )}
                 </div>
@@ -237,21 +239,21 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Konfirmasi Update Status</AlertDialogTitle>
+                                    <AlertDialogTitle>{t('confirmUpdateTitle')}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Apakah Anda yakin ingin mengubah status pesanan menjadi{' '}
-                                        <strong>{getOrderStatusInfo(status).label}</strong>?
+                                        {t('confirmUpdateDesc')}{' '}
+                                        <strong>{getOrderStatusInfo(status, t).label}</strong>?
                                         {status === 'shipped' && !trackingNumber && (
                                             <span className="block mt-2 text-yellow-600">
-                                                ⚠️ Anda belum mengisi nomor resi
+                                                ⚠️ {t('noTrackingWarning')}
                                             </span>
                                         )}
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => updateStatus(status)}>
-                                        Ya, Update
+                                        {t('yesUpdate')}
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
@@ -262,33 +264,33 @@ export function OrderStatusUpdater({ order, onUpdate }: OrderStatusUpdaterProps)
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive" disabled={isLoading}>
-                                    Batalkan
+                                    {t('cancelOrder')}
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Batalkan Pesanan</AlertDialogTitle>
+                                    <AlertDialogTitle>{t('cancelOrder')}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini tidak dapat dibatalkan.
+                                        {t('cancelConfirm')}
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="py-4">
-                                    <Label htmlFor="cancelReason">Alasan Pembatalan</Label>
+                                    <Label htmlFor="cancelReason">{t('cancelReason')}</Label>
                                     <Textarea
                                         id="cancelReason"
                                         value={cancelReason}
                                         onChange={(e) => setCancelReason(e.target.value)}
-                                        placeholder="Masukkan alasan pembatalan..."
+                                        placeholder={t('enterCancelReason')}
                                         className="mt-2"
                                     />
                                 </div>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Kembali</AlertDialogCancel>
+                                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                                     <AlertDialogAction
                                         className="bg-red-600 hover:bg-red-700"
                                         onClick={() => updateStatus('cancelled')}
                                     >
-                                        Ya, Batalkan
+                                        {t('yesCancel')}
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>

@@ -68,7 +68,6 @@ export default async function EditProductPage({
                 </Button>
                 <div>
                     <h1 className="text-2xl font-bold">Edit Produk</h1>
-                    <p className="text-muted-foreground">{product.name}</p>
                 </div>
             </div>
 

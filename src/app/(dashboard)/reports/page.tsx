@@ -120,27 +120,27 @@ async function SalesReport() {
     const report = await getSalesReport();
 
     return (
-        <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardContent className="p-4">
+        <div className="space-y-4">
+            <div className="grid gap-2 md:grid-cols-3">
+                <Card className="py-2 gap-0">
+                    <CardContent className="px-4 py-0">
                         <div className="flex items-center gap-2">
-                            <DollarSign className="h-5 w-5 text-green-600" />
-                            <span className="text-2xl font-bold">{formatPrice(report.totalRevenue)}</span>
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                            <span className="text-xl font-bold">{formatPrice(report.totalRevenue)}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">Total Pendapatan (30 hari)</p>
+                        <p className="text-[10px] uppercase font-medium text-muted-foreground">Pendapatan (30 hari)</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="text-2xl font-bold">{report.totalOrders}</div>
-                        <p className="text-sm text-muted-foreground">Total Pesanan (30 hari)</p>
+                <Card className="py-2 gap-0">
+                    <CardContent className="px-4 py-0">
+                        <div className="text-xl font-bold">{report.totalOrders}</div>
+                        <p className="text-[10px] uppercase font-medium text-muted-foreground">Pesanan (30 hari)</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="text-2xl font-bold">{formatPrice(report.avgOrderValue)}</div>
-                        <p className="text-sm text-muted-foreground">Rata-rata Nilai Pesanan</p>
+                <Card className="py-2 gap-0">
+                    <CardContent className="px-4 py-0">
+                        <div className="text-xl font-bold">{formatPrice(report.avgOrderValue)}</div>
+                        <p className="text-[10px] uppercase font-medium text-muted-foreground">Avg. Order Value</p>
                     </CardContent>
                 </Card>
             </div>
@@ -274,7 +274,7 @@ async function ProductReport() {
 
 export default function ReportsPage() {
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Laporan</h1>
 

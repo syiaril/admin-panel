@@ -667,7 +667,7 @@ export function ProductForm({ product, categories }: ProductFormProps) {
                 <div className="flex gap-4">
                     <Button type="submit" disabled={isLoading} className="bg-orange-500 hover:bg-orange-600">
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {product ? 'Update Produk' : 'Tambah Produk'}
+                        {product ? 'Update' : 'Tambah'}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => router.back()}>
                         Batal

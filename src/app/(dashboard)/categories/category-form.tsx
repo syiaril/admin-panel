@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,17 +31,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { generateSlug } from '@/lib/formatters';
 import { Category } from '@/types/database';
-
-const categorySchema = z.object({
-    name: z.string().min(1, 'Nama kategori wajib diisi'),
-    slug: z.string().min(1, 'Slug wajib diisi'),
-    description: z.string().optional(),
-    parent_id: z.string().optional(),
-    is_active: z.boolean().default(true),
-    sort_order: z.coerce.number().int().min(0).default(0),
-});
-
-type CategoryFormValues = z.infer<typeof categorySchema>;
+import { useLanguage } from '@/components/layout/language-provider';
 
 interface CategoryFormProps {
     category?: Category;
@@ -52,6 +42,18 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const supabase = createClient();
+    const { t } = useLanguage();
+
+    const categorySchema = useMemo(() => z.object({
+        name: z.string().min(1, t('categoryNameRequired')),
+        slug: z.string().min(1, t('slugRequired')),
+        description: z.string().optional(),
+        parent_id: z.string().optional(),
+        is_active: z.boolean().default(true),
+        sort_order: z.coerce.number().int().min(0).default(0),
+    }), [t]);
+
+    type CategoryFormValues = z.infer<typeof categorySchema>;
 
     const form = useForm<CategoryFormValues>({
         resolver: zodResolver(categorySchema),
@@ -92,20 +94,20 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     .eq('id', category.id);
 
                 if (error) throw error;
-                toast.success('Kategori berhasil diupdate');
+                toast.success(t('categoryUpdateSuccess'));
             } else {
                 const { error } = await supabase
                     .from('categories')
                     .insert(categoryData);
 
                 if (error) throw error;
-                toast.success('Kategori berhasil ditambahkan');
+                toast.success(t('categoryAddSuccess'));
             }
 
             router.refresh();
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Terjadi kesalahan';
-            toast.error('Gagal menyimpan kategori', {
+            const message = error instanceof Error ? error.message : t('errorLoadingDetails');
+            toast.error(t('categorySaveError'), {
                 description: message,
             });
         } finally {
@@ -121,9 +123,9 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Nama Kategori *</FormLabel>
+                            <FormLabel>{t('categoryNameLabel')} *</FormLabel>
                             <FormControl>
-                                <Input placeholder="Contoh: Seragam" {...field} />
+                                <Input placeholder={t('exampleUniform')} {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -135,7 +137,7 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     name="slug"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Slug *</FormLabel>
+                            <FormLabel>{t('slug')} *</FormLabel>
                             <FormControl>
                                 <Input placeholder="seragam" {...field} />
                             </FormControl>
@@ -149,15 +151,15 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     name="parent_id"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Parent Kategori</FormLabel>
+                            <FormLabel>{t('parentCategoryLabel')}</FormLabel>
                             <Select onValueChange={(value) => field.onChange(value === "none" ? "" : value)} defaultValue={field.value || "none"}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Pilih parent (opsional)" />
+                                        <SelectValue placeholder={t('selectParentOptional')} />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="none">Tidak ada</SelectItem>
+                                    <SelectItem value="none">{t('none')}</SelectItem>
                                     {categories
                                         .filter(c => !c.parent_id)
                                         .map((cat) => (
@@ -177,10 +179,10 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     name="description"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Deskripsi</FormLabel>
+                            <FormLabel>{t('descriptionLabel')}</FormLabel>
                             <FormControl>
                                 <Textarea
-                                    placeholder="Deskripsi kategori..."
+                                    placeholder={t('categoryDescPlaceholder')}
                                     rows={3}
                                     {...field}
                                 />
@@ -195,7 +197,7 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     name="sort_order"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Urutan</FormLabel>
+                            <FormLabel>{t('sortOrderLabel')}</FormLabel>
                             <FormControl>
                                 <Input type="number" placeholder="0" {...field} />
                             </FormControl>
@@ -210,7 +212,7 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                     render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3">
                             <div className="space-y-0.5">
-                                <FormLabel>Aktif</FormLabel>
+                                <FormLabel>{t('activeLabel')}</FormLabel>
                             </div>
                             <FormControl>
                                 <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -222,7 +224,7 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
                 <div className="flex gap-2 pt-4">
                     <Button type="submit" disabled={isLoading} className="bg-orange-500 hover:bg-orange-600">
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {category ? 'Update' : 'Tambah'}
+                        {category ? t('save') : t('add')}
                     </Button>
                 </div>
             </form>

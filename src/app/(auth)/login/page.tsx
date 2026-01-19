@@ -28,15 +28,17 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/components/layout/language-provider';
 
 const loginSchema = z.object({
-    email: z.string().email('Email tidak valid'),
-    password: z.string().min(6, 'Password minimal 6 karakter'),
+    email: z.string().email({ message: 'Email tidak valid' }),
+    password: z.string().min(6, { message: 'Password minimal 6 karakter' }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 function LoginContent() {
+    const { t } = useLanguage();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +109,7 @@ function LoginContent() {
             }
 
             toast.success('Login berhasil', {
-                description: `Selamat datang, ${profile.full_name || 'Admin'}!`,
+                description: `Selamat datang, ${profile.full_name || 'Admin'} !`,
             });
 
             router.push(redirect);
@@ -130,13 +132,13 @@ function LoginContent() {
                 </div>
                 <CardTitle className="text-2xl font-bold">Kedai Species</CardTitle>
                 <CardDescription>
-                    Masuk ke admin panel untuk mengelola toko
+                    {t('loginSubtitle')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 {error === 'unauthorized' && (
                     <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg">
-                        Anda tidak memiliki akses ke halaman ini. Silakan login dengan akun admin.
+                        {t('adminOnlyError')}
                     </div>
                 )}
 
@@ -147,7 +149,7 @@ function LoginContent() {
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email</FormLabel>
+                                    <FormLabel>{t('email')}</FormLabel>
                                     <FormControl>
                                         <Input
                                             placeholder="admin@kedaispecies.com"
@@ -167,7 +169,7 @@ function LoginContent() {
                             name="password"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Password</FormLabel>
+                                    <FormLabel>{t('password')}</FormLabel>
                                     <FormControl>
                                         <Input
                                             placeholder="••••••••"
@@ -184,11 +186,17 @@ function LoginContent() {
 
                         <Button
                             type="submit"
-                            className="w-full bg-orange-500 hover:bg-orange-600"
+                            className="w-full bg-orange-600 hover:bg-orange-700"
                             disabled={isLoading}
                         >
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Masuk
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {t('signingIn')}
+                                </>
+                            ) : (
+                                t('signIn')
+                            )}
                         </Button>
                     </form>
                 </Form>

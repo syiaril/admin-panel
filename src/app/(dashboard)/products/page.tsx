@@ -20,19 +20,27 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Pencil, Eye, Package, Star, AlertTriangle } from 'lucide-react';
+import { Plus, Eye, Package, Star, AlertTriangle } from 'lucide-react';
 import { formatPrice, getStockStatusInfo } from '@/lib/formatters';
 import { Product, Category, ProductImage } from '@/types/database';
+import { cookies } from 'next/headers';
+import { getTranslation } from '@/lib/i18n';
+
+import { Pagination } from '@/components/ui/pagination';
 
 interface ProductWithRelations extends Product {
     category: Category | null;
     product_images: ProductImage[];
 }
 
-async function getProducts() {
-    const supabase = await createClient();
+const ITEMS_PER_PAGE = 10;
 
-    const { data: products, error } = await supabase
+async function getProducts(page: number = 1) {
+    const supabase = await createClient();
+    const from = (page - 1) * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    const { data: products, error, count } = await supabase
         .from('products')
         .select(`
       *,
@@ -47,15 +55,19 @@ async function getProducts() {
         is_primary,
         sort_order
       )
-    `)
-        .order('created_at', { ascending: false });
+    `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
     if (error) {
         console.error('Error fetching products:', error);
-        return [];
+        return { products: [], count: 0 };
     }
 
-    return products as ProductWithRelations[];
+    return {
+        products: products as ProductWithRelations[],
+        count: count || 0
+    };
 }
 
 async function getProductStats() {
@@ -76,14 +88,14 @@ async function getProductStats() {
     return stats;
 }
 
-function ProductsTableSkeleton() {
+function ProductsTableSkeleton({ t }: { t: any }) {
     return (
         <div className="rounded-md border bg-card">
             <Table>
                 <TableHeader>
                     <TableRow>
-                        {['Produk', 'Kategori', 'Harga', 'Stok', 'Status', ''].map((h, i) => (
-                            <TableHead key={i}>{h}</TableHead>
+                        {[t('preview'), t('productName'), t('category'), t('price'), t('stock'), t('status')].map((h, i) => (
+                            <TableHead key={i} className={h === t('price') ? 'text-right' : h === t('stock') ? 'text-center' : ''}>{h}</TableHead>
                         ))}
                     </TableRow>
                 </TableHeader>
@@ -101,9 +113,8 @@ function ProductsTableSkeleton() {
                             </TableCell>
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-16 mx-auto" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -112,182 +123,81 @@ function ProductsTableSkeleton() {
     );
 }
 
-async function ProductsTable() {
-    const products = await getProducts();
+import { ProductsTable } from './products-table';
 
+async function ProductsTableWrapper({ page, language }: { page: number, language: string }) {
+    const { products, count } = await getProducts(page);
     return (
-        <div className="rounded-md border bg-card">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Produk</TableHead>
-                        <TableHead>Kategori</TableHead>
-                        <TableHead className="text-right">Harga</TableHead>
-                        <TableHead className="text-center">Stok</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {products.length > 0 ? (
-                        products.map((product) => {
-                            const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-                            const stockInfo = getStockStatusInfo(product.stock, product.low_stock_threshold);
-
-                            return (
-                                <TableRow key={product.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                                                {primaryImage?.image_url ? (
-                                                    <img
-                                                        src={primaryImage.image_url}
-                                                        alt={product.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <Package className="h-5 w-5 text-muted-foreground" />
-                                                )}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <Link
-                                                    href={`/products/${product.id}/edit`}
-                                                    className="font-medium hover:underline text-orange-600 truncate block"
-                                                >
-                                                    {product.name}
-                                                </Link>
-                                                <p className="text-xs text-muted-foreground">{product.sku}</p>
-                                                <div className="flex gap-1 mt-1">
-                                                    {product.is_featured && (
-                                                        <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                                            <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
-                                                            Featured
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">{product.category?.name || '-'}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div>
-                                            <p className="font-medium">{formatPrice(product.price)}</p>
-                                            {product.compare_price && product.compare_price > product.price && (
-                                                <p className="text-xs text-muted-foreground line-through">
-                                                    {formatPrice(product.compare_price)}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant={stockInfo.color}>
-                                            {product.stock === 0 ? (
-                                                <><AlertTriangle className="h-3 w-3 mr-1" />Habis</>
-                                            ) : (
-                                                product.stock
-                                            )}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={product.is_active ? 'default' : 'secondary'}>
-                                            {product.is_active ? 'Aktif' : 'Nonaktif'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/products/${product.id}/edit`}>
-                                                        <Pencil className="mr-2 h-4 w-4" />
-                                                        Edit
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
-                                <div className="flex flex-col items-center gap-2">
-                                    <Package className="h-8 w-8 text-muted-foreground" />
-                                    <p className="text-muted-foreground">Belum ada produk</p>
-                                    <Button asChild>
-                                        <Link href="/products/new">
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Tambah Produk
-                                        </Link>
-                                    </Button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-        </div>
+        <>
+            <ProductsTable products={products} language={language} />
+            <Pagination
+                totalCount={count}
+                pageSize={ITEMS_PER_PAGE}
+                currentPage={page}
+            />
+        </>
     );
 }
 
-async function StatsCards() {
+async function StatsCards({ t }: { t: any }) {
     const stats = await getProductStats();
 
     return (
-        <div className="grid gap-4 md:grid-cols-5 mb-6">
-            <Card>
-                <CardContent className="p-4 text-center">
+        <div className="grid gap-2 md:grid-cols-5 mb-4">
+            <Card className="py-2 gap-0">
+                <CardContent className="p-0 text-center">
                     <div className="text-2xl font-bold">{stats.total}</div>
-                    <p className="text-xs text-muted-foreground">Total Produk</p>
+                    <p className="text-[10px] uppercase font-medium text-muted-foreground">{t('totalProducts')}</p>
                 </CardContent>
             </Card>
-            <Card>
-                <CardContent className="p-4 text-center">
+            <Card className="py-2 gap-0">
+                <CardContent className="p-0 text-center">
                     <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-                    <p className="text-xs text-muted-foreground">Aktif</p>
+                    <p className="text-[10px] uppercase font-medium text-muted-foreground">{t('active')}</p>
                 </CardContent>
             </Card>
-            <Card>
-                <CardContent className="p-4 text-center">
+            <Card className="py-2 gap-0">
+                <CardContent className="p-0 text-center">
                     <div className="text-2xl font-bold text-yellow-600">{stats.featured}</div>
-                    <p className="text-xs text-muted-foreground">Featured</p>
+                    <p className="text-[10px] uppercase font-medium text-muted-foreground">{t('featured')}</p>
                 </CardContent>
             </Card>
-            <Card>
-                <CardContent className="p-4 text-center">
+            <Card className="py-2 gap-0">
+                <CardContent className="p-0 text-center">
                     <div className="text-2xl font-bold text-orange-600">{stats.lowStock}</div>
-                    <p className="text-xs text-muted-foreground">Stok Rendah</p>
+                    <p className="text-[10px] uppercase font-medium text-muted-foreground">{t('lowStock')}</p>
                 </CardContent>
             </Card>
-            <Card>
-                <CardContent className="p-4 text-center">
+            <Card className="py-2 gap-0">
+                <CardContent className="p-0 text-center">
                     <div className="text-2xl font-bold text-red-600">{stats.outOfStock}</div>
-                    <p className="text-xs text-muted-foreground">Habis</p>
+                    <p className="text-[10px] uppercase font-medium text-muted-foreground">{t('outOfStock')}</p>
                 </CardContent>
             </Card>
         </div>
     );
 }
 
-export default function ProductsPage() {
+export default async function ProductsPage({
+    searchParams,
+}: {
+    searchParams: { page?: string };
+}) {
+    const page = Number((await searchParams).page) || 1;
+    const cookieStore = await cookies();
+    const language = cookieStore.get('language')?.value as any || 'id';
+    const t = getTranslation(language);
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Produk</h1>
-
+                    <h1 className="text-3xl font-bold tracking-tight">{t('products')}</h1>
                 </div>
                 <Button asChild className="bg-orange-500 hover:bg-orange-600">
                     <Link href="/products/new">
                         <Plus className="mr-2 h-4 w-4" />
-                        Tambah Produk
+                        {t('addProduct')}
                     </Link>
                 </Button>
             </div>
@@ -304,12 +214,16 @@ export default function ProductsPage() {
                     ))}
                 </div>
             }>
-                <StatsCards />
+                <StatsCards t={t} />
             </Suspense>
 
-            <Suspense fallback={<ProductsTableSkeleton />}>
-                <ProductsTable />
-            </Suspense>
+            <Card className="py-4 gap-0">
+                <CardContent className="p-4 pt-0">
+                    <Suspense fallback={<ProductsTableSkeleton t={t} />}>
+                        <ProductsTableWrapper page={page} language={language} />
+                    </Suspense>
+                </CardContent>
+            </Card>
         </div>
     );
 }

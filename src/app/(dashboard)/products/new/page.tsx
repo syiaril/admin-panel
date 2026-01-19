@@ -29,10 +29,7 @@ export default async function NewProductPage() {
                     </Link>
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold">Tambah Produk Baru</h1>
-                    <p className="text-muted-foreground">
-                        Isi informasi produk di bawah ini
-                    </p>
+                    <h1 className="text-2xl font-bold">Tambah</h1>
                 </div>
             </div>
 

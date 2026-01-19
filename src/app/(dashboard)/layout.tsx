@@ -1,9 +1,9 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import { AppSidebar } from '@/components/layout/app-sidebar';
-import { Header } from '@/components/layout/header';
 import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 
 async function getUser() {
@@ -44,11 +44,10 @@ export default async function DashboardLayout({
 
     return (
         <SidebarProvider>
-            <AppSidebar />
+            <AppSidebar user={user || undefined} />
             <SidebarInset>
-                <Header user={user || undefined} />
                 <div className="flex flex-1 flex-col">
-                    <div className="px-6 py-4 border-b bg-background">
+                    <div className="px-6 py-4 border-b bg-background flex items-center gap-4">
                         <BreadcrumbNav />
                     </div>
                     <main className="flex-1 p-6 bg-muted/30">

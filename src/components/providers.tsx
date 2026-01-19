@@ -4,6 +4,8 @@ import * as React from 'react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import { LanguageProvider } from '@/components/layout/language-provider';
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -16,14 +18,16 @@ const queryClient = new QueryClient({
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <QueryClientProvider client={queryClient}>
-            <NextThemesProvider
-                attribute="class"
-                defaultTheme="system"
-                enableSystem
-                disableTransitionOnChange
-            >
-                {children}
-            </NextThemesProvider>
+            <LanguageProvider>
+                <NextThemesProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    {children}
+                </NextThemesProvider>
+            </LanguageProvider>
         </QueryClientProvider>
     );
 }

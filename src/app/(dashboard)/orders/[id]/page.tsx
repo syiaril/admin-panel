@@ -33,6 +33,7 @@ import {
 import { Order, OrderItem } from '@/types/database';
 import { OrderStatusUpdater } from './order-status-updater';
 import { fetchWithAuth } from '@/hooks/lib/api';
+import { useLanguage } from '@/components/layout/language-provider';
 
 interface OrderWithDetails extends Order {
     profiles: {
@@ -98,6 +99,7 @@ function OrderDetailSkeleton() {
 }
 
 export default function OrderDetailPage() {
+    const { t, language } = useLanguage();
     const params = useParams();
     const orderId = params.id as string;
 
@@ -115,11 +117,11 @@ export default function OrderDetailPage() {
             if (response.success) {
                 setOrder(response.data);
             } else {
-                throw new Error(response.error || 'Failed to fetch order');
+                throw new Error(response.error || t('errorLoadingOrder'));
             }
         } catch (err) {
             console.error('Error fetching order:', err);
-            setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data');
+            setError(err instanceof Error ? err.message : t('errorLoadingOrder'));
         } finally {
             setIsLoading(false);
         }
@@ -139,12 +141,12 @@ export default function OrderDetailPage() {
         return (
             <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" asChild>
+                    <Button variant="ghost" size="icon" asChild title={t('backToOrders')}>
                         <Link href="/orders">
                             <ArrowLeft className="h-4 w-4" />
                         </Link>
                     </Button>
-                    <h1 className="text-2xl font-bold">Detail Pesanan</h1>
+                    <h1 className="text-2xl font-bold">{t('orderDetails')}</h1>
                 </div>
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
@@ -153,7 +155,7 @@ export default function OrderDetailPage() {
                 </Alert>
                 <Button onClick={fetchOrder}>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Coba Lagi
+                    {t('tryAgain')}
                 </Button>
             </div>
         );
@@ -163,26 +165,26 @@ export default function OrderDetailPage() {
         return (
             <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" asChild>
+                    <Button variant="ghost" size="icon" asChild title={t('backToOrders')}>
                         <Link href="/orders">
                             <ArrowLeft className="h-4 w-4" />
                         </Link>
                     </Button>
-                    <h1 className="text-2xl font-bold">Pesanan Tidak Ditemukan</h1>
+                    <h1 className="text-2xl font-bold">{t('orderNotFound')}</h1>
                 </div>
-                <p className="text-muted-foreground">Pesanan dengan ID tersebut tidak ditemukan.</p>
+                <p className="text-muted-foreground">{t('orderNotFoundDesc')}</p>
             </div>
         );
     }
 
-    const statusInfo = getOrderStatusInfo(order.status);
-    const paymentInfo = getPaymentStatusInfo(order.payment_status);
+    const statusInfo = getOrderStatusInfo(order.status, t);
+    const paymentInfo = getPaymentStatusInfo(order.payment_status, t);
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild>
+                <Button variant="ghost" size="icon" asChild title={t('backToOrders')}>
                     <Link href="/orders">
                         <ArrowLeft className="h-4 w-4" />
                     </Link>
@@ -190,16 +192,16 @@ export default function OrderDetailPage() {
                 <div className="flex-1">
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-bold">{order.order_number}</h1>
-                        <Badge className={statusInfo.bgColor}>{statusInfo.label}</Badge>
-                        <Badge className={paymentInfo.bgColor}>{paymentInfo.label}</Badge>
+                        <Badge variant={statusInfo.color as any} className={statusInfo.bgColor}>{statusInfo.label}</Badge>
+                        <Badge variant={paymentInfo.color as any} className={paymentInfo.bgColor}>{paymentInfo.label}</Badge>
                     </div>
                     <p className="text-muted-foreground text-sm">
-                        Dibuat pada {formatDateTime(order.created_at)}
+                        {t('created')} {formatDateTime(order.created_at, language)}
                     </p>
                 </div>
                 <Button variant="outline" onClick={fetchOrder}>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh
+                    {t('refresh')}
                 </Button>
             </div>
 
@@ -211,7 +213,7 @@ export default function OrderDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Package className="h-5 w-5" />
-                                Item Pesanan
+                                {t('orderItems')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -233,11 +235,11 @@ export default function OrderDetailPage() {
                                             <p className="font-medium truncate">{item.product_name}</p>
                                             <p className="text-sm text-muted-foreground">SKU: {item.product_sku}</p>
                                             <p className="text-sm text-muted-foreground">
-                                                {formatPrice(item.unit_price)} × {item.quantity}
+                                                {formatPrice(item.unit_price, language)} × {item.quantity}
                                             </p>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <p className="font-medium">{formatPrice(item.subtotal)}</p>
+                                            <p className="font-medium">{formatPrice(item.subtotal, language)}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -248,29 +250,29 @@ export default function OrderDetailPage() {
                             {/* Order Summary */}
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Subtotal</span>
-                                    <span>{formatPrice(order.subtotal)}</span>
+                                    <span className="text-muted-foreground">{t('subtotal')}</span>
+                                    <span>{formatPrice(order.subtotal, language)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Ongkos Kirim</span>
-                                    <span>{formatPrice(order.shipping_cost)}</span>
+                                    <span className="text-muted-foreground">{t('shippingCost')}</span>
+                                    <span>{formatPrice(order.shipping_cost, language)}</span>
                                 </div>
                                 {order.discount_amount > 0 && (
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Diskon</span>
-                                        <span className="text-green-600">-{formatPrice(order.discount_amount)}</span>
+                                        <span className="text-muted-foreground">{t('discount')}</span>
+                                        <span className="text-green-600">-{formatPrice(order.discount_amount, language)}</span>
                                     </div>
                                 )}
                                 {order.tax_amount > 0 && (
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Pajak</span>
-                                        <span>{formatPrice(order.tax_amount)}</span>
+                                        <span className="text-muted-foreground">{t('tax')}</span>
+                                        <span>{formatPrice(order.tax_amount, language)}</span>
                                     </div>
                                 )}
                                 <Separator />
                                 <div className="flex justify-between font-bold">
                                     <span>Total</span>
-                                    <span className="text-orange-600">{formatPrice(order.total_amount)}</span>
+                                    <span className="text-orange-600">{formatPrice(order.total_amount, language)}</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -282,19 +284,19 @@ export default function OrderDetailPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <FileText className="h-5 w-5" />
-                                    Catatan
+                                    {t('notes')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {order.customer_notes && (
                                     <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Catatan Pelanggan:</p>
+                                        <p className="text-sm font-medium text-muted-foreground">{t('customerNotes')}:</p>
                                         <p className="text-sm">{order.customer_notes}</p>
                                     </div>
                                 )}
                                 {order.admin_notes && (
                                     <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Catatan Admin:</p>
+                                        <p className="text-sm font-medium text-muted-foreground">{t('adminNotes')}:</p>
                                         <p className="text-sm">{order.admin_notes}</p>
                                     </div>
                                 )}
@@ -313,12 +315,12 @@ export default function OrderDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <User className="h-5 w-5" />
-                                Pelanggan
+                                {t('customer')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div>
-                                <p className="font-medium">{order.profiles?.full_name || 'Guest'}</p>
+                                <p className="font-medium">{order.profiles?.full_name || t('guest')}</p>
                                 <p className="text-sm text-muted-foreground">{order.profiles?.email}</p>
                             </div>
                             {order.profiles?.phone && (
@@ -330,7 +332,7 @@ export default function OrderDetailPage() {
                             {order.profiles?.id && (
                                 <Button variant="outline" size="sm" asChild>
                                     <Link href={`/customers/${order.profiles.id}`}>
-                                        Lihat Profil
+                                        {t('viewProfile')}
                                     </Link>
                                 </Button>
                             )}
@@ -342,7 +344,7 @@ export default function OrderDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Truck className="h-5 w-5" />
-                                Pengiriman
+                                {t('shipping')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -370,16 +372,16 @@ export default function OrderDetailPage() {
                             <Separator />
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Kurir</span>
-                                    <span>{order.shipping_method ? shippingMethodLabels[order.shipping_method] || order.shipping_method : '-'}</span>
+                                    <span className="text-muted-foreground">{t('courier')}</span>
+                                    <span>{order.shipping_method ? t(`shipping_${order.shipping_method.toLowerCase()}` as any) || order.shipping_method : '-'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">No. Resi</span>
+                                    <span className="text-muted-foreground">{t('trackingNumber')}</span>
                                     <span className="font-mono">{order.tracking_number || '-'}</span>
                                 </div>
                                 {order.estimated_delivery && (
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Estimasi</span>
+                                        <span className="text-muted-foreground">{t('estimation')}</span>
                                         <span>{order.estimated_delivery}</span>
                                     </div>
                                 )}
@@ -392,28 +394,28 @@ export default function OrderDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <CreditCard className="h-5 w-5" />
-                                Pembayaran
+                                {t('paymentInfo')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Metode</span>
-                                <span>{paymentMethodLabels[order.payment_method] || order.payment_method}</span>
+                                <span className="text-muted-foreground">{t('method')}</span>
+                                <span>{order.payment_method ? t(`method_${order.payment_method.toLowerCase()}` as any) || order.payment_method : '-'}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Status</span>
-                                <Badge className={paymentInfo.bgColor}>{paymentInfo.label}</Badge>
+                                <span className="text-muted-foreground">{t('status')}</span>
+                                <Badge variant={paymentInfo.color as any} className={paymentInfo.bgColor}>{paymentInfo.label}</Badge>
                             </div>
                             {order.paid_at && (
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Dibayar</span>
-                                    <span>{formatDateTime(order.paid_at)}</span>
+                                    <span className="text-muted-foreground">{t('paidAt')}</span>
+                                    <span>{formatDateTime(order.paid_at, language)}</span>
                                 </div>
                             )}
                             {order.payment_proof_url && (
                                 <Button variant="outline" size="sm" asChild>
                                     <a href={order.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                                        Lihat Bukti Bayar
+                                        {t('viewPaymentProof')}
                                     </a>
                                 </Button>
                             )}
@@ -425,43 +427,43 @@ export default function OrderDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Calendar className="h-5 w-5" />
-                                Timeline
+                                {t('timeline')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Dibuat</span>
-                                    <span>{formatDateTime(order.created_at)}</span>
+                                    <span className="text-muted-foreground">{t('created')}</span>
+                                    <span>{formatDateTime(order.created_at, language)}</span>
                                 </div>
                                 {order.confirmed_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Dikonfirmasi</span>
-                                        <span>{formatDateTime(order.confirmed_at)}</span>
+                                        <span className="text-muted-foreground">{t('confirmed')}</span>
+                                        <span>{formatDateTime(order.confirmed_at, language)}</span>
                                     </div>
                                 )}
                                 {order.shipped_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Dikirim</span>
-                                        <span>{formatDateTime(order.shipped_at)}</span>
+                                        <span className="text-muted-foreground">{t('shipped')}</span>
+                                        <span>{formatDateTime(order.shipped_at, language)}</span>
                                     </div>
                                 )}
                                 {order.delivered_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Terkirim</span>
-                                        <span>{formatDateTime(order.delivered_at)}</span>
+                                        <span className="text-muted-foreground">{t('delivered')}</span>
+                                        <span>{formatDateTime(order.delivered_at, language)}</span>
                                     </div>
                                 )}
                                 {order.completed_at && (
                                     <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Selesai</span>
-                                        <span>{formatDateTime(order.completed_at)}</span>
+                                        <span className="text-muted-foreground">{t('completed')}</span>
+                                        <span>{formatDateTime(order.completed_at, language)}</span>
                                     </div>
                                 )}
                                 {order.cancelled_at && (
                                     <div className="flex justify-between text-red-600">
-                                        <span>Dibatalkan</span>
-                                        <span>{formatDateTime(order.cancelled_at)}</span>
+                                        <span>{t('cancelled')}</span>
+                                        <span>{formatDateTime(order.cancelled_at, language)}</span>
                                     </div>
                                 )}
                             </div>

@@ -22,43 +22,55 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, FolderTree, Pencil, Package } from 'lucide-react';
+import { Plus, FolderTree, Package } from 'lucide-react';
 import { Category } from '@/types/database';
 import { CategoryForm } from './category-form';
+import { cookies } from 'next/headers';
+import { getTranslation } from '@/lib/i18n';
+
+import { Pagination } from '@/components/ui/pagination';
 
 interface CategoryWithCount extends Category {
     parent: { name: string } | null;
     products: { count: number }[];
 }
 
-async function getCategories() {
-    const supabase = await createClient();
+const ITEMS_PER_PAGE = 10;
 
-    const { data: categories, error } = await supabase
+async function getCategories(page: number = 1) {
+    const supabase = await createClient();
+    const from = (page - 1) * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    const { data: categories, error, count } = await supabase
         .from('categories')
         .select(`
       *,
       parent:parent_id (name),
       products (count)
-    `)
-        .order('sort_order');
+    `, { count: 'exact' })
+        .order('sort_order', { ascending: true })
+        .range(from, to);
 
     if (error) {
         console.error('Error fetching categories:', error);
-        return [];
+        return { categories: [], count: 0 };
     }
 
-    return categories as CategoryWithCount[];
+    return {
+        categories: categories as CategoryWithCount[],
+        count: count || 0
+    };
 }
 
-function CategoriesTableSkeleton() {
+function CategoriesTableSkeleton({ t }: { t: any }) {
     return (
         <div className="rounded-md border bg-card">
             <Table>
                 <TableHeader>
                     <TableRow>
-                        {['Kategori', 'Slug', 'Parent', 'Produk', 'Status', ''].map((h, i) => (
-                            <TableHead key={i}>{h}</TableHead>
+                        {[t('category'), t('slug'), t('parent'), t('items'), t('status')].map((h, i) => (
+                            <TableHead key={i} className={h === t('items') ? 'text-center' : ''}>{h}</TableHead>
                         ))}
                     </TableRow>
                 </TableHeader>
@@ -66,16 +78,16 @@ function CategoriesTableSkeleton() {
                     {[...Array(5)].map((_, i) => (
                         <TableRow key={i}>
                             <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Skeleton className="h-10 w-10 rounded" />
-                                    <Skeleton className="h-4 w-32" />
-                                </div>
+                                <Skeleton className="h-4 w-32" />
                             </TableCell>
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                            <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                            <TableCell>
+                                <div className="flex justify-center">
+                                    <Skeleton className="h-4 w-8" />
+                                </div>
+                            </TableCell>
+                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -84,132 +96,120 @@ function CategoriesTableSkeleton() {
     );
 }
 
-async function CategoriesTable() {
-    const categories = await getCategories();
+async function CategoriesTable({ page, t }: { page: number, t: any }) {
+    const { categories, count } = await getCategories(page);
 
     return (
-        <div className="rounded-md border bg-card">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Kategori</TableHead>
-                        <TableHead>Slug</TableHead>
-                        <TableHead>Parent</TableHead>
-                        <TableHead className="text-center">Produk</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {categories.length > 0 ? (
-                        categories.map((category) => {
-                            const productCount = category.products?.[0]?.count || 0;
-
-                            return (
-                                <TableRow key={category.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
-                                                {category.image_url ? (
-                                                    <img
-                                                        src={category.image_url}
-                                                        alt={category.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <FolderTree className="h-5 w-5 text-muted-foreground" />
-                                                )}
-                                            </div>
-                                            <span className="font-medium">{category.name}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground font-mono text-sm">
-                                        {category.slug}
-                                    </TableCell>
-                                    <TableCell>
-                                        {category.parent?.name || '-'}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="outline">{productCount}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={category.is_active ? 'default' : 'secondary'}>
-                                            {category.is_active ? 'Aktif' : 'Nonaktif'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>Edit Kategori</DialogTitle>
-                                                    <DialogDescription>
-                                                        Ubah informasi kategori
-                                                    </DialogDescription>
-                                                </DialogHeader>
-                                                <CategoryForm
-                                                    category={category}
-                                                    categories={categories.filter(c => c.id !== category.id)}
-                                                />
-                                            </DialogContent>
-                                        </Dialog>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })
-                    ) : (
+        <div className="space-y-4">
+            <div className="rounded-md border bg-card">
+                <Table>
+                    <TableHeader>
                         <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
-                                <div className="flex flex-col items-center gap-2">
-                                    <FolderTree className="h-8 w-8 text-muted-foreground" />
-                                    <p className="text-muted-foreground">Belum ada kategori</p>
-                                </div>
-                            </TableCell>
+                            <TableHead>{t('category')}</TableHead>
+                            <TableHead>{t('slug')}</TableHead>
+                            <TableHead>{t('parent')}</TableHead>
+                            <TableHead className="text-center">{t('items')}</TableHead>
+                            <TableHead>{t('status')}</TableHead>
                         </TableRow>
-                    )}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {categories.length > 0 ? (
+                            categories.map((category) => {
+                                const productCount = category.products?.[0]?.count || 0;
+
+                                return (
+                                    <TableRow key={category.id}>
+                                        <TableCell>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <div className="cursor-pointer group">
+                                                        <span className="font-medium text-orange-600 group-hover:underline">
+                                                            {category.name}
+                                                        </span>
+                                                    </div>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>{t('editCategory')}</DialogTitle>
+                                                        <DialogDescription>
+                                                            {t('changeCategoryInfo')}
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <CategoryForm
+                                                        category={category}
+                                                        categories={categories.filter(c => c.id !== category.id)}
+                                                    />
+                                                </DialogContent>
+                                            </Dialog>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground font-mono text-sm">
+                                            {category.slug}
+                                        </TableCell>
+                                        <TableCell>
+                                            {category.parent?.name || '-'}
+                                        </TableCell>
+                                        <TableCell className="text-center text-muted-foreground">
+                                            {productCount}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={category.is_active ? 'default' : 'secondary'}>
+                                                {category.is_active ? t('active') : t('inactive')}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-24 text-center">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <FolderTree className="h-8 w-8 text-muted-foreground" />
+                                        <p className="text-muted-foreground">{t('noCategoriesFound')}</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+            <Pagination
+                totalCount={count}
+                pageSize={ITEMS_PER_PAGE}
+                currentPage={page}
+            />
         </div>
     );
 }
 
-async function CategoriesWrapper() {
-    const categories = await getCategories();
+async function CategoriesWrapper({ page, t }: { page: number, t: any }) {
+    const { categories } = await getCategories(1); // Fetch all for the form, but could be optimized
 
     return (
         <>
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Kategori</h1>
-
+                    <h1 className="text-3xl font-bold tracking-tight">{t('categories')}</h1>
                 </div>
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button className="bg-orange-500 hover:bg-orange-600">
                             <Plus className="mr-2 h-4 w-4" />
-                            Tambah Kategori
+                            {t('addProduct')}
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Tambah Kategori Baru</DialogTitle>
-                            <DialogDescription>
-                                Isi informasi kategori di bawah ini
-                            </DialogDescription>
+                            <DialogTitle>{t('addCategory')}</DialogTitle>
                         </DialogHeader>
                         <CategoryForm categories={categories} />
                     </DialogContent>
                 </Dialog>
             </div>
 
-            <Card>
-                <CardContent className="pt-6">
-                    <Suspense fallback={<CategoriesTableSkeleton />}>
-                        <CategoriesTable />
+            <Card className="py-4 gap-0">
+                <CardContent className="p-4 pt-0">
+                    <Suspense fallback={<CategoriesTableSkeleton t={t} />}>
+                        <CategoriesTable page={page} t={t} />
                     </Suspense>
                 </CardContent>
             </Card>
@@ -217,9 +217,18 @@ async function CategoriesWrapper() {
     );
 }
 
-export default function CategoriesPage() {
+export default async function CategoriesPage({
+    searchParams,
+}: {
+    searchParams: { page?: string };
+}) {
+    const page = Number((await searchParams).page) || 1;
+    const cookieStore = await cookies();
+    const language = (cookieStore.get('language')?.value as any) || 'id';
+    const t = getTranslation(language);
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <Suspense fallback={
                 <>
                     <div className="flex items-center justify-between">
@@ -229,14 +238,14 @@ export default function CategoriesPage() {
                         </div>
                         <Skeleton className="h-10 w-40" />
                     </div>
-                    <Card>
-                        <CardContent className="pt-6">
-                            <CategoriesTableSkeleton />
+                    <Card className="py-4 gap-0">
+                        <CardContent className="p-4 pt-0">
+                            <CategoriesTableSkeleton t={t} />
                         </CardContent>
                     </Card>
                 </>
             }>
-                <CategoriesWrapper />
+                <CategoriesWrapper page={page} t={t} />
             </Suspense>
         </div>
     );
