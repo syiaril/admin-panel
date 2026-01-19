@@ -105,7 +105,7 @@ function StatsCards({ stats }: { stats: OrderStats }) {
             <Card>
                 <CardContent className="pt-4">
                     <div className="text-2xl font-bold">{stats.total}</div>
-                    <p className="text-xs text-muted-foreground">Total Pesanan</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
                 </CardContent>
             </Card>
             <Card>
@@ -283,9 +283,7 @@ export default function OrdersPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Pesanan</h1>
-                    <p className="text-muted-foreground">
-                        Kelola semua pesanan pelanggan
-                    </p>
+
                 </div>
                 <Button variant="outline" onClick={fetchData} disabled={isLoading}>
                     <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />

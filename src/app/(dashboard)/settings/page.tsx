@@ -7,9 +7,7 @@ export default function SettingsPage() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Pengaturan</h1>
-                <p className="text-muted-foreground">
-                    Kelola pengaturan toko dan admin panel
-                </p>
+
             </div>
 
             <div className="grid gap-6">
@@ -171,8 +169,8 @@ export default function SettingsPage() {
                                         <p className="text-xs text-muted-foreground">{notif.desc}</p>
                                     </div>
                                     <span className={`text-xs px-2 py-1 rounded ${notif.enabled
-                                            ? 'bg-green-100 text-green-600'
-                                            : 'bg-gray-100 text-gray-600'
+                                        ? 'bg-green-100 text-green-600'
+                                        : 'bg-gray-100 text-gray-600'
                                         }`}>
                                         {notif.enabled ? 'Aktif' : 'Nonaktif'}
                                     </span>

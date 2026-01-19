@@ -277,9 +277,7 @@ export default function ReportsPage() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Laporan</h1>
-                <p className="text-muted-foreground">
-                    Analisis penjualan dan performa toko
-                </p>
+
             </div>
 
             <Tabs defaultValue="sales" className="space-y-6">

@@ -282,9 +282,7 @@ export default function ProductsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Produk</h1>
-                    <p className="text-muted-foreground">
-                        Kelola semua produk toko
-                    </p>
+
                 </div>
                 <Button asChild className="bg-orange-500 hover:bg-orange-600">
                     <Link href="/products/new">

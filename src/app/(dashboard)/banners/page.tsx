@@ -172,9 +172,7 @@ export default function BannersPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Banner</h1>
-                    <p className="text-muted-foreground">
-                        Kelola banner untuk halaman utama
-                    </p>
+
                 </div>
                 <Dialog>
                     <DialogTrigger asChild>

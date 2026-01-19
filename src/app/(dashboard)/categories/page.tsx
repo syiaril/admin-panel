@@ -185,9 +185,7 @@ async function CategoriesWrapper() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Kategori</h1>
-                    <p className="text-muted-foreground">
-                        Kelola kategori produk
-                    </p>
+
                 </div>
                 <Dialog>
                     <DialogTrigger asChild>
@@ -227,7 +225,7 @@ export default function CategoriesPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <Skeleton className="h-9 w-32" />
-                            <Skeleton className="h-4 w-48 mt-1" />
+
                         </div>
                         <Skeleton className="h-10 w-40" />
                     </div>
